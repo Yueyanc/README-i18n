@@ -1,0 +1,29 @@
+{
+  "name": "README-i18n",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "tsx watch ./src/cli/index.cts",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@antfu/eslint-config": "^2.6.3",
+    "@types/node": "^20.11.5",
+    "@types/yargs": "^17.0.32",
+    "eslint": "^8.56.0",
+    "openai": "^4.24.7",
+    "tunnel": "^0.0.6",
+    "typescript": "^5.3.3",
+    "yargs": "17.1.1-candidate.0"
+  },
+  "devDependencies": {
+    "@types/tunnel": "^0.0.6",
+    "tsx": "^4.7.0"
+  }
+}
