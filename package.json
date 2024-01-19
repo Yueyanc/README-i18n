@@ -54,6 +54,9 @@
     "@types/node": "^20.11.5",
     "@types/tunnel": "^0.0.6",
     "@types/yargs": "^17.0.32",
+    "rollup": "^4.9.5",
+    "rollup-plugin-typescript2": "^0.36.0",
+    "tsdx": "^0.14.1",
     "tslib": "^2.6.2"
   }
 }

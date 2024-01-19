@@ -1,6 +1,6 @@
 import path from 'path';
 import fs from 'fs';
-import { Config, LanguageCode, StandardConfig } from './config';
+import { Config, LanguageCode, StandardConfig } from '../config';
 import tunnel from 'tunnel';
 import OpenAI from 'openai';
 

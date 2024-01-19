@@ -2,9 +2,9 @@ import yargs from 'yargs/yargs';
 import fs from 'fs';
 import path from 'path';
 import { hideBin } from 'yargs/helpers';
-import { initCli } from './cli';
+import { initCli } from './cli/index';
 import { Config, LanguageCode, standardizingConfig } from './config';
-import { translate } from './translate';
+import { translate } from './cli/translate';
 
 const defaultConfig: Config = {
   root: process.cwd(),
@@ -14,16 +14,18 @@ const defaultConfig: Config = {
 };
 async function main() {
   initCli();
-  const argv = yargs(hideBin(process.argv)).parse();
   const rootPath = process.cwd();
   const configName = 'rdi18n.config.js';
   const configPath = path.join(rootPath, configName);
+  let userConfig = {};
+
   if (fs.existsSync(configPath)) {
-    const userConfig = require(configPath);
-    const config = { ...defaultConfig, ...userConfig };
-    const standardConfig = standardizingConfig(config);
-    await translate(standardConfig);
+    userConfig = require(configPath);
   }
+
+  // const config = { ...defaultConfig, ...userConfig };
+  // const standardConfig = standardizingConfig(config);
+  // await translate(standardConfig);
 }
 
 main();
