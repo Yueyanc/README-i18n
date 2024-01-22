@@ -1,4 +1,5 @@
 {
+  "name": "readme-i18n",
   "version": "0.1.0",
   "license": "MIT",
   "main": "dist/index.js",
@@ -11,38 +12,9 @@
     "node": ">=10"
   },
   "scripts": {
-    "start": "tsdx watch --onSuccess \"node ./bin/rdi18n\"",
-    "build": "tsdx build",
-    "test": "tsdx test",
-    "lint": "tsdx lint",
-    "prepare": "tsdx build",
-    "size": "size-limit",
-    "analyze": "size-limit --why"
+    "start": "tsup src/index.ts --watch --onSuccess \"node ./bin/rdi18n translate ./README.md -t en_US ja_JP --host 127.0.0.1 -p 10809 \""
   },
-  "husky": {
-    "hooks": {
-      "pre-commit": "tsdx lint"
-    }
-  },
-  "prettier": {
-    "printWidth": 80,
-    "semi": true,
-    "singleQuote": true,
-    "trailingComma": "es5"
-  },
-  "name": "tsdx-test",
   "author": "Yueyanc",
-  "module": "dist/tsdx-test.esm.js",
-  "size-limit": [
-    {
-      "path": "dist/tsdx-test.cjs.production.min.js",
-      "limit": "10 KB"
-    },
-    {
-      "path": "dist/tsdx-test.esm.js",
-      "limit": "10 KB"
-    }
-  ],
   "dependencies": {
     "lodash": "^4.17.21",
     "openai": "^4.24.7",
@@ -54,9 +26,8 @@
     "@types/node": "^20.11.5",
     "@types/tunnel": "^0.0.6",
     "@types/yargs": "^17.0.32",
-    "rollup": "^4.9.5",
-    "rollup-plugin-typescript2": "^0.36.0",
-    "tsdx": "^0.14.1",
-    "tslib": "^2.6.2"
+    "tslib": "^2.6.2",
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.3"
   }
 }
