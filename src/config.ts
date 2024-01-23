@@ -1,5 +1,6 @@
 import _ from "lodash";
 import { join } from "path";
+import { Model } from "./cli/translate";
 export type LanguageCode = "zh_CN" | "ja_JP" | "en_US" | "fr_FR" | "ko_KR";
 export interface Config {
   root: string;
@@ -8,6 +9,7 @@ export interface Config {
   targetLanguage: LanguageCode[] | LanguageCode;
   key: string;
   proxy?: { host: string; port: number };
+  model: Model;
 }
 export interface StandardConfig {
   root: string;
@@ -16,6 +18,7 @@ export interface StandardConfig {
   targetLanguage: LanguageCode[];
   key: string;
   proxy?: { host: string; port: number };
+  model: Model;
 }
 export function standardizingConfig(config: Config): StandardConfig {
   return _.chain(config)
@@ -27,21 +30,22 @@ export function standardizingConfig(config: Config): StandardConfig {
     )
     .value() as StandardConfig;
 }
-const defaultConfig: Config = {
+const defaultConfig: Partial<Config> = {
   root: process.cwd(),
   templatePath: "",
   key: "",
   output: process.cwd(),
   targetLanguage: ["en_US"],
 };
-export function mergeConfigFromArgv(argv: any) {
-  const { path, targetLanguage, root: argvRoot, port, host, key } = argv;
+export function mergeConfigFromArgv(argv: any): StandardConfig {
+  const { path, targetLanguage, root: argvRoot, port, host, key, model } = argv;
   const root = argvRoot || defaultConfig.root;
   const argvConfig: Partial<Config> = {
     root,
     key,
     templatePath: path,
     targetLanguage,
+    model,
   };
   if (port && host) {
     argvConfig.proxy = { host, port };
@@ -49,5 +53,5 @@ export function mergeConfigFromArgv(argv: any) {
   return {
     ...defaultConfig,
     ...argvConfig,
-  };
+  } as StandardConfig;
 }

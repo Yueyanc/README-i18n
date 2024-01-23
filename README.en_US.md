@@ -1,10 +1,10 @@
 # This is a Chinese title
 ## This is a Chinese second-level title
 
-This is Chinese body text
+This is Chinese text
 ```javascript
 function test(){
-  const a = 2 // This is a test comment
+  const a = 2 // test comment
   return a
 }
 ```

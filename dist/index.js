@@ -1,43 +1,27 @@
-"use strict";
-var __create = Object.create;
-var __defProp = Object.defineProperty;
-var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
-var __getOwnPropNames = Object.getOwnPropertyNames;
-var __getProtoOf = Object.getPrototypeOf;
-var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __copyProps = (to, from, except, desc) => {
-  if (from && typeof from === "object" || typeof from === "function") {
-    for (let key of __getOwnPropNames(from))
-      if (!__hasOwnProp.call(to, key) && key !== except)
-        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
-  }
-  return to;
-};
-var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
-  // If the importer is in node compatibility mode or this is not an ESM
-  // file that has been converted to a CommonJS file using a Babel-
-  // compatible transform (i.e. "__esModule" has not been set), then set
-  // "default" to the CommonJS "module.exports" for node compatibility.
-  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
-  mod
-));
+var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
+  get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
+}) : x)(function(x) {
+  if (typeof require !== "undefined")
+    return require.apply(this, arguments);
+  throw Error('Dynamic require of "' + x + '" is not supported');
+});
 
 // src/index.ts
-var import_fs2 = __toESM(require("fs"));
-var import_path2 = __toESM(require("path"));
+import fs2 from "fs";
+import path2 from "path";
 
 // src/cli/index.ts
-var import_helpers = require("yargs/helpers");
-var import_yargs = __toESM(require("yargs"));
+import { hideBin } from "yargs/helpers";
+import yargs from "yargs";
 
 // src/cli/translate.ts
-var import_path = __toESM(require("path"));
-var import_fs = __toESM(require("fs"));
+import path from "path";
+import fs from "fs";
 
 // src/config.ts
-var import_lodash = __toESM(require("lodash"));
+import _ from "lodash";
 function standardizingConfig(config) {
-  return import_lodash.default.chain(config).set(
+  return _.chain(config).set(
     "targetLanguage",
     Array.isArray(config.targetLanguage) ? config.targetLanguage : [config.targetLanguage]
   ).value();
@@ -45,16 +29,19 @@ function standardizingConfig(config) {
 var defaultConfig = {
   root: process.cwd(),
   templatePath: "",
+  key: "",
   output: process.cwd(),
   targetLanguage: ["en_US"]
 };
 function mergeConfigFromArgv(argv) {
-  const { path: path3, targetLanguage, root: argvRoot, port, host } = argv;
+  const { path: path3, targetLanguage, root: argvRoot, port, host, key, model } = argv;
   const root = argvRoot || defaultConfig.root;
   const argvConfig = {
     root,
+    key,
     templatePath: path3,
-    targetLanguage
+    targetLanguage,
+    model
   };
   if (port && host) {
     argvConfig.proxy = { host, port };
@@ -66,56 +53,64 @@ function mergeConfigFromArgv(argv) {
 }
 
 // src/cli/translate.ts
-var import_tunnel = __toESM(require("tunnel"));
-var import_openai = __toESM(require("openai"));
+import tunnel from "tunnel";
+import OpenAI from "openai";
+import _2 from "lodash";
+import Listr from "listr";
 async function translate(config) {
-  const templateContent = import_fs.default.readFileSync(
-    import_path.default.join(config.root, config.templatePath),
+  const templateContent = fs.readFileSync(
+    path.join(config.root, config.templatePath),
     "utf8"
   );
-  console.log(config.proxy);
-  const openai = new import_openai.default({
-    apiKey: "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",
+  const openai = new OpenAI({
+    apiKey: config.key,
     httpAgent: config.proxy && createAgent(config.proxy)
   });
-  config.targetLanguage.forEach(async (lang) => {
-    const result = await translateToLang(templateContent, {
-      language: lang,
-      translator: openai
-    });
-    if (result) {
-      writeReadme(
-        import_path.default.join(
-          import_path.default.isAbsolute(config.output) ? config.output : import_path.default.join(config.root, config.output),
-          `/README.${lang}.md`
-        ),
-        result
-      );
-    }
-  });
+  const tasks = new Listr(
+    config.targetLanguage.map((lang) => ({
+      title: `Translating ${lang}`,
+      task: async () => {
+        const result = await translateToLang(templateContent, {
+          language: lang,
+          translator: openai,
+          model: config.model
+        });
+        if (result) {
+          return writeReadme(
+            path.join(
+              path.isAbsolute(config.output) ? config.output : path.join(config.root, config.output),
+              `/README.${lang}.md`
+            ),
+            result
+          );
+        }
+        return Promise.reject(false);
+      }
+    })),
+    { concurrent: true }
+  );
+  tasks.run();
 }
 function writeReadme(path3, content) {
   return new Promise((resolve, reject) => {
-    import_fs.default.writeFile(path3, content, (err) => {
+    fs.writeFile(path3, content, (err) => {
       if (err) {
         console.error("\u5199\u5165\u6587\u4EF6\u65F6\u53D1\u751F\u9519\u8BEF:", err);
         reject(err);
       }
       resolve(true);
-      console.log("\u6587\u4EF6\u5199\u5165\u6210\u529F\u3002");
     });
   });
 }
 function createAgent(proxy) {
-  const agent = import_tunnel.default.httpsOverHttp({
+  const agent = tunnel.httpsOverHttp({
     proxy
   });
   return agent;
 }
 async function translateToLang(content, options) {
-  var _a, _b, _c;
   const response = await options.translator.chat.completions.create({
-    model: "gpt-3.5-turbo",
+    model: options.model,
     messages: [
       {
         role: "user",
@@ -123,7 +118,10 @@ async function translateToLang(content, options) {
       }
     ]
   });
-  return (_c = (_b = (_a = response == null ? void 0 : response.choices) == null ? void 0 : _a[0]) == null ? void 0 : _b.message) == null ? void 0 : _c.content;
+  const result = _2.get(response, ["choices", 0, "message", "content"]);
+  if (result)
+    return Promise.resolve(result);
+  return Promise.reject(result);
 }
 function createTranslateCmd(yargs2) {
   return yargs2.command(
@@ -138,7 +136,14 @@ function createTranslateCmd(yargs2) {
         alias: "t",
         describe: "Target language(s) for translation",
         demandOption: true,
-        type: "array"
+        type: "array",
+        default: ["en_US"]
+      });
+      yargs3.option("key", {
+        alias: "k",
+        describe: "openAI key",
+        demandOption: true,
+        type: "string"
       });
       yargs3.option("host", {
         describe: "",
@@ -149,27 +154,36 @@ function createTranslateCmd(yargs2) {
         describe: "",
         type: "string"
       });
+      yargs3.option("port", {
+        alias: "p",
+        describe: "",
+        type: "string"
+      });
+      yargs3.option("model", {
+        alias: "m",
+        describe: "",
+        type: "string",
+        default: "gpt-3.5-turbo"
+      });
     },
     (argv) => {
-      console.log(argv);
       const config = mergeConfigFromArgv(argv);
       const standardConfig = standardizingConfig(config);
-      console.log(config, standardConfig);
       translate(standardConfig);
     }
   ).alias("t", "translate");
 }
 
 // src/cli/index.ts
-var import_lodash2 = __toESM(require("lodash"));
+import _3 from "lodash";
 function createBase(yargs2) {
-  return yargs2((0, import_helpers.hideBin)(process.argv)).scriptName("rdi18n").usage("This is readme translater \u{1F389}\n\nUsage: $0 <commond> [options]").strictCommands(true).example(
+  return yargs2(hideBin(process.argv)).scriptName("rdi18n").usage("This is readme translater \u{1F389}\n\nUsage: $0 <commond> [options]").strictCommands(true).example(
     "$0 translate ./README.md -t en_US ja_JP",
     "Translate ./README.md to English and Japanese"
   ).demandCommand(1, "Please specify a command.").help("help").alias("help", "h").version("version", "1.0.1").alias("version", "v");
 }
 function initCli() {
-  import_lodash2.default.flow(createBase, createTranslateCmd, (yargs2) => yargs2.parse())(import_yargs.default);
+  _3.flow(createBase, createTranslateCmd, (yargs2) => yargs2.parse())(yargs);
 }
 
 // src/index.ts
@@ -177,10 +191,10 @@ async function main() {
   initCli();
   const rootPath = process.cwd();
   const configName = "rdi18n.config.js";
-  const configPath = import_path2.default.join(rootPath, configName);
+  const configPath = path2.join(rootPath, configName);
   let userConfig = {};
-  if (import_fs2.default.existsSync(configPath)) {
-    userConfig = require(configPath);
+  if (fs2.existsSync(configPath)) {
+    userConfig = __require(configPath);
   }
 }
 main();

@@ -10,7 +10,23 @@ import {
 import tunnel from "tunnel";
 import OpenAI from "openai";
 import { Argv } from "yargs";
-
+import _ from "lodash";
+import Listr from "listr";
+export type Model =
+  | "gpt-4-1106-preview"
+  | "gpt-4-vision-preview"
+  | "gpt-4"
+  | "gpt-4-0314"
+  | "gpt-4-0613"
+  | "gpt-4-32k"
+  | "gpt-4-32k-0314"
+  | "gpt-4-32k-0613"
+  | "gpt-3.5-turbo"
+  | "gpt-3.5-turbo-16k"
+  | "gpt-3.5-turbo-0301"
+  | "gpt-3.5-turbo-0613"
+  | "gpt-3.5-turbo-1106"
+  | "gpt-3.5-turbo-16k-0613";
 export async function translate(config: StandardConfig) {
   const templateContent = fs.readFileSync(
     path.join(config.root, config.templatePath),
@@ -20,23 +36,33 @@ export async function translate(config: StandardConfig) {
     apiKey: config.key,
     httpAgent: config.proxy && createAgent(config.proxy),
   });
-  config.targetLanguage.forEach(async (lang) => {
-    const result = await translateToLang(templateContent, {
-      language: lang,
-      translator: openai,
-    });
-    if (result) {
-      writeReadme(
-        path.join(
-          path.isAbsolute(config.output)
-            ? config.output
-            : path.join(config.root, config.output),
-          `/README.${lang}.md`
-        ),
-        result
-      );
-    }
-  });
+  const tasks = new Listr(
+    config.targetLanguage.map((lang) => ({
+      title: `Translating ${lang}`,
+      task: async () => {
+        const result = await translateToLang(templateContent, {
+          language: lang,
+          translator: openai,
+          model: config.model,
+        });
+        if (result) {
+          return writeReadme(
+            path.join(
+              path.isAbsolute(config.output)
+                ? config.output
+                : path.join(config.root, config.output),
+              `/README.${lang}.md`
+            ),
+            result
+          );
+        }
+        return Promise.reject(false);
+      },
+    })),
+    { concurrent: true }
+  );
+
+  tasks.run();
 }
 
 function writeReadme(path: string, content: string) {
@@ -47,7 +73,6 @@ function writeReadme(path: string, content: string) {
         reject(err);
       }
       resolve(true);
-      console.log("文件写入成功。");
     });
   });
 }
@@ -61,10 +86,10 @@ function createAgent(proxy: Config["proxy"]) {
 
 async function translateToLang(
   content: string,
-  options: { language: LanguageCode; translator: OpenAI }
+  options: { language: LanguageCode; translator: OpenAI; model: Model }
 ) {
   const response = await options.translator.chat.completions.create({
-    model: "gpt-3.5-turbo",
+    model: options.model,
     messages: [
       {
         role: "user",
@@ -72,7 +97,9 @@ async function translateToLang(
       },
     ],
   });
-  return response?.choices?.[0]?.message?.content;
+  const result = _.get(response, ["choices", 0, "message", "content"]);
+  if (result) return Promise.resolve(result);
+  return Promise.reject(result);
 }
 export default function createTranslateCmd(yargs: Argv) {
   return yargs
@@ -89,6 +116,7 @@ export default function createTranslateCmd(yargs: Argv) {
           describe: "Target language(s) for translation",
           demandOption: true,
           type: "array",
+          default: ["en_US"],
         });
         yargs.option("key", {
           alias: "k",
@@ -105,11 +133,21 @@ export default function createTranslateCmd(yargs: Argv) {
           describe: "",
           type: "string",
         });
+        yargs.option("port", {
+          alias: "p",
+          describe: "",
+          type: "string",
+        });
+        yargs.option("model", {
+          alias: "m",
+          describe: "",
+          type: "string",
+          default: "gpt-3.5-turbo",
+        });
       },
       (argv) => {
         const config = mergeConfigFromArgv(argv);
         const standardConfig = standardizingConfig(config);
-
         translate(standardConfig);
       }
     )
