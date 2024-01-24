@@ -1,3 +1,4 @@
 #!/usr/bin/env node
 process.title = "rdi18n cli";
-import "../dist/index.js";
+import { main } from "../dist/index.js";
+main();

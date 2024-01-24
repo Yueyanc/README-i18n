@@ -1,25 +1,11 @@
-import yargs from "yargs/yargs";
 import fs from "fs";
 import path from "path";
-import { hideBin } from "yargs/helpers";
 import { initCli } from "./cli/index";
-import { Config, LanguageCode, standardizingConfig } from "./config";
-import { translate } from "./cli/translate";
+import { StandardConfig } from "./config";
 
-async function main() {
+export function main() {
   initCli();
-  const rootPath = process.cwd();
-  const configName = "rdi18n.config.js";
-  const configPath = path.join(rootPath, configName);
-  let userConfig = {};
-
-  if (fs.existsSync(configPath)) {
-    userConfig = require(configPath);
-  }
-
-  // const config = { ...defaultConfig, ...userConfig };
-  // const standardConfig = standardizingConfig(config);
-  // await translate(standardConfig);
 }
-
-main();
+export function defineConfig(params: StandardConfig) {
+  return params;
+}

@@ -1,8 +1,11 @@
 {
-  "name": "readme-i18n",
+  "name": "rdi18n",
   "type": "module",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "license": "MIT",
+  "bin":{
+    "rdi18n":"./bin/rdi18n"
+  },
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
   "files": [
@@ -13,14 +16,14 @@
     "node": ">=10"
   },
   "scripts": {
-    "start": "tsup src/index.ts --watch --onSuccess \"node ./bin/rdi18n translate ./README.md -t en_US ja_JP --host 127.0.0.1 -p 10809 \""
+    "start": "tsup src/index.ts --watch --onSuccess \"node ./bin/rdi18n translate --host 127.0.0.1 -p 10809\"",
+    "build":"tsup src/index.ts"
   },
   "author": "Yueyanc",
   "dependencies": {
     "listr": "^0.14.3",
     "lodash": "^4.17.21",
     "openai": "^4.24.7",
-    "ora": "^8.0.1",
     "tunnel": "^0.0.6",
     "yargs": "^17.7.2"
   },

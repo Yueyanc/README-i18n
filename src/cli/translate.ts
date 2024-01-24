@@ -1,17 +1,20 @@
-import path from "path";
+import path, { join } from "path";
 import fs from "fs";
 import {
-  Config,
   LanguageCode,
   StandardConfig,
-  mergeConfigFromArgv,
-  standardizingConfig,
+  checkConfig,
+  defaultConfig,
+  getConfigFromArgv,
+  getConfigFromConfigFile,
+  mergeConfig,
 } from "../config";
 import tunnel from "tunnel";
 import OpenAI from "openai";
 import { Argv } from "yargs";
 import _ from "lodash";
 import Listr from "listr";
+
 export type Model =
   | "gpt-4-1106-preview"
   | "gpt-4-vision-preview"
@@ -29,7 +32,7 @@ export type Model =
   | "gpt-3.5-turbo-16k-0613";
 export async function translate(config: StandardConfig) {
   const templateContent = fs.readFileSync(
-    path.join(config.root, config.templatePath),
+    path.join(config.root, config.source),
     "utf8"
   );
   const openai = new OpenAI({
@@ -43,7 +46,7 @@ export async function translate(config: StandardConfig) {
         const result = await translateToLang(templateContent, {
           language: lang,
           translator: openai,
-          model: config.model,
+          config,
         });
         if (result) {
           return writeReadme(
@@ -69,7 +72,6 @@ function writeReadme(path: string, content: string) {
   return new Promise((resolve, reject) => {
     fs.writeFile(path, content, (err) => {
       if (err) {
-        console.error("写入文件时发生错误:", err);
         reject(err);
       }
       resolve(true);
@@ -77,7 +79,7 @@ function writeReadme(path: string, content: string) {
   });
 }
 
-function createAgent(proxy: Config["proxy"]) {
+function createAgent(proxy: StandardConfig["proxy"]) {
   const agent = tunnel.httpsOverHttp({
     proxy,
   });
@@ -86,14 +88,20 @@ function createAgent(proxy: Config["proxy"]) {
 
 async function translateToLang(
   content: string,
-  options: { language: LanguageCode; translator: OpenAI; model: Model }
+  options: {
+    language: LanguageCode;
+    translator: OpenAI;
+    config: StandardConfig;
+  }
 ) {
   const response = await options.translator.chat.completions.create({
-    model: options.model,
+    model: options.config.model,
     messages: [
       {
         role: "user",
-        content: `将下面的markdown文档翻译成${options.language}对应的语言:${content}`,
+        content: options.config.prompt
+          ? options.config.prompt(content, options)
+          : `将下面的markdown文档翻译成${options.language}对应的语言:${content}`,
       },
     ],
   });
@@ -104,50 +112,49 @@ async function translateToLang(
 export default function createTranslateCmd(yargs: Argv) {
   return yargs
     .command(
-      "translate <path> [options]",
-      '"Translate readme according to configuration"',
+      "translate",
+      "",
       (yargs) => {
-        yargs.positional("path", {
-          describe: "Path to the file",
+        yargs.option("source", {
+          describe: "The path to the translated file",
           type: "string",
         });
         yargs.option("targetLanguage", {
           alias: "t",
           describe: "Target language(s) for translation",
-          demandOption: true,
           type: "array",
-          default: ["en_US"],
         });
         yargs.option("key", {
           alias: "k",
           describe: "openAI key",
-          demandOption: true,
           type: "string",
         });
         yargs.option("host", {
-          describe: "",
+          describe: "The proxy host address",
           type: "string",
         });
         yargs.option("port", {
           alias: "p",
-          describe: "",
-          type: "string",
-        });
-        yargs.option("port", {
-          alias: "p",
-          describe: "",
+          describe: "The proxy port address",
           type: "string",
         });
         yargs.option("model", {
           alias: "m",
-          describe: "",
+          describe: "The model name like 'gpt-3.5-turbo-16k' or  'gpt-4'",
           type: "string",
-          default: "gpt-3.5-turbo",
         });
       },
-      (argv) => {
-        const config = mergeConfigFromArgv(argv);
-        const standardConfig = standardizingConfig(config);
+      async (argv) => {
+        const argvConfig = getConfigFromArgv(argv);
+        const fileConfig = await getConfigFromConfigFile(
+          join(process.cwd(), "./rdi18n.config")
+        );
+        const standardConfig = mergeConfig(
+          defaultConfig,
+          fileConfig,
+          argvConfig
+        );
+        checkConfig(standardConfig);
         translate(standardConfig);
       }
     )
