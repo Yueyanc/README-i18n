@@ -1,13 +1,29 @@
 {
   "name": "rdi18n",
   "type": "module",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "license": "MIT",
+  "homepage": "https://github.com/Yueyanc/README-i18n",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Yueyanc/README-i18n.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Yueyanc/README-i18n/issues"
+  },
   "bin":{
     "rdi18n":"./bin/rdi18n"
   },
-  "main": "dist/index.js",
-  "typings": "dist/index.d.ts",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "typings": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
   "files": [
     "dist",
     "src"
@@ -17,7 +33,8 @@
   },
   "scripts": {
     "start": "tsup src/index.ts --watch --onSuccess \"node ./bin/rdi18n translate --host 127.0.0.1 -p 10809\"",
-    "build":"tsup src/index.ts"
+    "build":"tsup src/index.ts",
+    "release": "bumpp && npm publish"
   },
   "author": "Yueyanc",
   "dependencies": {
