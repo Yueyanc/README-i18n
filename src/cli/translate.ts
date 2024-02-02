@@ -1,5 +1,6 @@
 import path, { join } from "path";
 import fs from "fs";
+import chalk from "chalk";
 import {
   LanguageCode,
   StandardConfig,
@@ -42,11 +43,16 @@ export async function translate(config: StandardConfig) {
   const tasks = new Listr(
     config.targetLanguage.map((lang) => ({
       title: `Translating ${lang}`,
-      task: async () => {
+      task: async (ctx, task) => {
+        let token = 0;
         const result = await translateToLang(templateContent, {
           language: lang,
           translator: openai,
           config,
+          onProcess: (value: string) => {
+            token += value.length;
+            task.output = `Translating ${lang}: Consumption ${token} token`;
+          },
         });
         if (result) {
           return writeReadme(
@@ -65,7 +71,15 @@ export async function translate(config: StandardConfig) {
     { concurrent: true }
   );
 
-  tasks.run();
+  tasks
+    .run()
+    .then(() => {
+      console.log(chalk.green("√ Finished"));
+      process.exit(1);
+    })
+    .catch((err) => {
+      console.log(err);
+    });
 }
 
 function writeReadme(path: string, content: string) {
@@ -92,20 +106,27 @@ async function translateToLang(
     language: LanguageCode;
     translator: OpenAI;
     config: StandardConfig;
+    onProcess?: (value: string) => any;
   }
 ) {
-  const response = await options.translator.chat.completions.create({
+  let result = "";
+  const stream = await options.translator.chat.completions.create({
     model: options.config.model,
+    stream: true,
     messages: [
       {
         role: "user",
         content: options.config.prompt
           ? options.config.prompt(content, options)
-          : `将下面的markdown文档翻译成${options.language}对应的语言:${content}`,
+          : `将下面的markdown文档翻译成${options.language}对应的语言,以下是原文内容:${content}`,
       },
     ],
   });
-  const result = _.get(response, ["choices", 0, "message", "content"]);
+  for await (const chunk of stream) {
+    const response = _.get(chunk, ["choices", 0, "delta", "content"]) || "";
+    options.onProcess?.(response);
+    result += response;
+  }
   if (result) return Promise.resolve(result);
   return Promise.reject(result);
 }

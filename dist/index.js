@@ -2,6 +2,7 @@ import { hideBin } from 'yargs/helpers';
 import yargs from 'yargs';
 import path, { join } from 'path';
 import fs3 from 'fs';
+import chalk from 'chalk';
 import _ from 'lodash';
 import { pathToFileURL } from 'url';
 import tunnel from 'tunnel';
@@ -82,11 +83,16 @@ async function translate(config) {
   const tasks = new Listr(
     config.targetLanguage.map((lang) => ({
       title: `Translating ${lang}`,
-      task: async () => {
+      task: async (ctx, task) => {
+        let token = 0;
         const result = await translateToLang(templateContent, {
           language: lang,
           translator: openai,
-          config
+          config,
+          onProcess: (value) => {
+            token += value.length;
+            task.output = `Translating ${lang}: \u{1F959} Consumption ${token} token`;
+          }
         });
         if (result) {
           return writeReadme(
@@ -102,7 +108,12 @@ async function translate(config) {
     })),
     { concurrent: true }
   );
-  tasks.run();
+  tasks.run().then(() => {
+    console.log(chalk.green("\u221A Finished"));
+    process.exit(1);
+  }).catch((err) => {
+    console.log(err);
+  });
 }
 function writeReadme(path3, content) {
   return new Promise((resolve, reject) => {
@@ -121,16 +132,23 @@ function createAgent(proxy) {
   return agent;
 }
 async function translateToLang(content, options) {
-  const response = await options.translator.chat.completions.create({
+  var _a;
+  let result = "";
+  const stream = await options.translator.chat.completions.create({
     model: options.config.model,
+    stream: true,
     messages: [
       {
         role: "user",
-        content: options.config.prompt ? options.config.prompt(content, options) : `\u5C06\u4E0B\u9762\u7684markdown\u6587\u6863\u7FFB\u8BD1\u6210${options.language}\u5BF9\u5E94\u7684\u8BED\u8A00:${content}`
+        content: options.config.prompt ? options.config.prompt(content, options) : `\u5C06\u4E0B\u9762\u7684markdown\u6587\u6863\u7FFB\u8BD1\u6210${options.language}\u5BF9\u5E94\u7684\u8BED\u8A00,\u4EE5\u4E0B\u662F\u539F\u6587\u5185\u5BB9:${content}`
       }
     ]
   });
-  const result = _.get(response, ["choices", 0, "message", "content"]);
+  for await (const chunk of stream) {
+    const response = _.get(chunk, ["choices", 0, "delta", "content"]) || "";
+    (_a = options.onProcess) == null ? void 0 : _a.call(options, response);
+    result += response;
+  }
   if (result)
     return Promise.resolve(result);
   return Promise.reject(result);

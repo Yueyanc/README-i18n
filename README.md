@@ -1,3 +1,5 @@
+中文 | [English](./README.en_US.md) | [日語](./README.ja_JP.md)
+
 # RDI18N
 
 🎉 将README通过chatgpt翻译成各国语言
@@ -27,7 +29,7 @@ export default defineConfig({
 
 ## 配置
 ```javascript
-export interface StandardConfig {
+interface StandardConfig {
   root: string; // 根目录 default: './'
   source: string; // 需要翻译的文档位置 default: './README.md'
   output: string; // 输出路径 default: './'
