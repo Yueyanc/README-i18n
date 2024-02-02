@@ -4,6 +4,9 @@
 
 🎉 将README通过chatgpt翻译成各国语言
 
+
+![](./assets/rdi18n.gif)
+
 ## 安装
 ```shell
 npm install global rdi18n

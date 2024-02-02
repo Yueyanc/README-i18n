@@ -2,6 +2,8 @@
 
 🎉 Translate README into various languages using chatgpt
 
+![](./assets/rdi18n.gif)
+
 ## Installation
 ```shell
 npm install -g rdi18n

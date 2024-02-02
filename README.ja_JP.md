@@ -2,6 +2,8 @@
 
 🎉 READMEをchatgptを使って各言語に翻訳します
 
+![](./assets/rdi18n.gif)
+
 ## インストール
 ```shell
 npm install global rdi18n
