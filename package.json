@@ -2,6 +2,7 @@
   "name": "rdi18n",
   "type": "module",
   "version": "0.1.0",
+  "author": "Yueyanc",
   "license": "MIT",
   "homepage": "https://github.com/Yueyanc/README-i18n",
   "repository": {
@@ -12,7 +13,7 @@
     "url": "https://github.com/Yueyanc/README-i18n/issues"
   },
   "bin": {
-    "rdi18n": "./bin/rdi18n"
+    "rdi18n": "bin/rdi18n"
   },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -26,7 +27,7 @@
   },
   "files": [
     "dist",
-    "src"
+    "bin"
   ],
   "engines": {
     "node": ">=10"
@@ -36,7 +37,6 @@
     "build": "tsup src/index.ts",
     "release": "bumpp && npm publish"
   },
-  "author": "Yueyanc",
   "dependencies": {
     "chalk": "^5.3.0",
     "listr": "^0.14.3",
